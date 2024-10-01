@@ -1,0 +1,7 @@
+streamlit
+streamlit-drawable-canvas
+svgpathtools
+langchain_groq
+python-dotenv
+load_dotenv
+-e .
