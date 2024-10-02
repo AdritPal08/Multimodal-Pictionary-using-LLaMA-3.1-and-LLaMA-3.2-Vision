@@ -38,8 +38,8 @@ st.header(":red[Pictionary] :green[App] 🎨🖌", divider='rainbow')
 # Set the timer duration in seconds
 TIMER_DURATION = 120
 
-SYSTEM_PROMPT = """You are a pictionary player. I'll give you an image of a doodle, and you must describe what the image is. For example, if the image is of a dog, your response might be: "That is a great drawing of a dog. It looks like a happy dog with its mouth open, its tongue sticking out, and its tail raised high."""
-SYSTEM_PROMPT2 = "You are a pictionary player. Generate a random, very easy doodle image concept that the user will draw within 2 minutes. Output only the concept without any additional text. For example: Cat standing on a table, Running horse."
+SYSTEM_PROMPT = "You are a pictionary player. I'll give you an image of a doodle and you must output what this image is."
+SYSTEM_PROMPT2 = "You are a pictionary player. Generate a new, random, very easy doodle image concept that the user will draw within 2 minutes. Output only the concept without any additional text. For example: Cat standing on a table, Running horse."
 
 def doodle_image():
     messages = [
@@ -77,11 +77,11 @@ bg_color = st.sidebar.color_picker("Background color hex: ", "#eee")
 # bg_image = st.sidebar.file_uploader("Background image:", type=["png", "jpg"])
 st.sidebar.divider()
 st.sidebar.markdown(
-        """
-        🚀 Created by : [**Adrit**](https://www.linkedin.com/in/adritpal/)
-        """,
-            unsafe_allow_html=True
-        )
+    """
+    🚀 Created by : **Adrit**
+    """,
+    unsafe_allow_html=True
+)
 
 # Initialize session state for timer
 if 'start_time' not in st.session_state:
@@ -99,27 +99,26 @@ else:
     st.metric("Countdown", "00:00")
     st.progress(1.0)
     st.warning("Time's up!")
-    
 # Function to save the image
 def save_image(image_data, filename="drawing.png"):
     image = Image.fromarray(image_data.astype('uint8'), 'RGBA')
     image.save(filename)
     # st.success(f"Image saved successfully as {filename}!")
 
-def image_to_base64(image_path, size=(300, 300)):
+def image_to_base64(image_data, size=(300, 300)):
     try:
-        with Image.open(image_path) as img:
-            img = img.resize(size)
-            buffered = BytesIO()
-            img.save(buffered, format="PNG")
-            encoded_string = base64.b64encode(buffered.getvalue()).decode('utf-8')
-            return encoded_string
-    except FileNotFoundError:
-        print(f"Error: Image file '{image_path}' not found.")
+        img = Image.fromarray(image_data.astype('uint8'), 'RGBA')
+        img = img.resize(size)
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")
+        encoded_string = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        return encoded_string
+    except Exception as e:
+        print(f"Error processing image: {e}")
         return None
 
-def describe_image(image_path, options={}):
-    image_base64 = image_to_base64(image_path)
+def describe_image(image_data, options={}):
+    image_base64 = image_to_base64(image_data)
     if image_base64 is None:
         return "Error: Could not process image."
 
@@ -167,7 +166,7 @@ if remaining_time > 0:
         if 'image_data' in st.session_state:
             st.write("**Preview**")
             st.image(st.session_state.image_data, width=800, use_column_width=True)
-            if st.button("Predict Image"):
+            if st.button("Save Image"):
                 save_image(st.session_state.image_data)
                 st.session_state.end_time = time.time()  # Stop the timer
 
@@ -183,30 +182,31 @@ if remaining_time > 0:
 # Display the saved image
 if 'image_data' in st.session_state:
     st.image(st.session_state.image_data)
-
 with st.spinner("Generating Result..."):
     # Describe the saved image
-    out = describe_image(image_path="drawing.png")
+    if 'image_data' in st.session_state:
+        out = describe_image(st.session_state.image_data)
 
-    # Judge the match between the two image concepts
-    messages_match = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": f"""You are the Judge. Based on these two image concepts, determine if the images match. If they match, return "PASS". If they do not match, return "FAIL".
-                Image 1: {out}
-                Image 2: {st.session_state.selected_word}"""},
-                    ]
-    }
-]
-    try:
-        match_response = llm.invoke(messages_match)
-        match_response2 = match_response.content.strip()
-        if match_response2 == "PASS":
-            st.success(f"Result: {match_response2}\n\nYour Image :{out}")
-        elif match_response2 == "FAIL":
-            st.warning(f"Result: {match_response2}\n\nYour Image :{out}")
-        else:
-            st.error("Unexpected response from the judge.")
-    except Exception as e:
-        st.error(f"Error judging the images: {e}")
+        # Judge the match between the two image concepts
+        messages_match = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": f"""You are the Judge. Based on these two image concepts, determine if the images match. If they match, return "PASS". If they do not match, return "FAIL".
+                    Image 1: {out}
+                    Image 2: {st.session_state.selected_word}"""},
+                ]
+            }
+        ]
+        
+        try:
+            match_response = llm2.invoke(messages_match)
+            match_response2 = match_response.content.strip()
+            if match_response2 == "PASS":
+                st.success(f"Result: {match_response2}\n\nYour Image: {out}")
+            elif match_response2 == "FAIL":
+                st.warning(f"Result: {match_response2}\n\nYour Image: {out}")
+            else:
+                st.error("Unexpected response from the judge.")
+        except Exception as e:
+            st.error(f"Error judging the images: {e}")
