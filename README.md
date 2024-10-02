@@ -10,7 +10,7 @@ Based on the Vision Model’s prediction and the original drawing prompt, the LL
 
 ## App Demo
 * App Name : Pictionary App
-* App Link :[Click Here](https://chitchartbuddy.streamlit.app/)
+* App Link :[Click Here](https://pictionary-app.streamlit.app/)
 
 ## Key Features: 
 1. **Random Drawing Prompts :** Generates random, easy-to-draw image concepts using the LLM model - Llama 3.1.
