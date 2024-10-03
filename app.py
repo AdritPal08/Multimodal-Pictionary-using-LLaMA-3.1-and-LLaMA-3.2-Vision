@@ -38,7 +38,7 @@ st.header(":red[Pictionary] :green[App] 🎨🖌", divider='rainbow')
 # Set the timer duration in seconds
 TIMER_DURATION = 120
 
-SYSTEM_PROMPT = "You are a pictionary player. I'll give you an image of a doodle and you must output what this image is."
+SYSTEM_PROMPT = "You are an expert in identifying doodle images. I will provide you with an image of a doodle, and your task is to accurately describe what the image represents in one clear and concise sentence. Do not ask for further instructions or clarification."
 SYSTEM_PROMPT2 = "You are a pictionary player. Generate a new, random, very easy doodle image concept that the user will draw within 2 minutes. Output only the concept without any additional text. For example: Cat standing on a table, Running horse."
 
 def doodle_image():
@@ -60,6 +60,7 @@ def doodle_image():
 # Initialize session state for selected word
 if 'selected_word' not in st.session_state:
     st.session_state.selected_word = doodle_image()
+    
 
 # Display the word to draw
 st.subheader(f"Draw this: **{st.session_state.selected_word}**")
@@ -166,7 +167,7 @@ if remaining_time > 0:
         if 'image_data' in st.session_state:
             st.write("**Preview**")
             st.image(st.session_state.image_data, width=800, use_column_width=True)
-            if st.button("Save Image"):
+            if st.button("Predict Image"):
                 save_image(st.session_state.image_data)
                 st.session_state.end_time = time.time()  # Stop the timer
 
@@ -182,6 +183,7 @@ if remaining_time > 0:
 # Display the saved image
 if 'image_data' in st.session_state:
     st.image(st.session_state.image_data)
+
 with st.spinner("Generating Result..."):
     # Describe the saved image
     if 'image_data' in st.session_state:
@@ -202,9 +204,9 @@ with st.spinner("Generating Result..."):
         try:
             match_response = llm2.invoke(messages_match)
             match_response2 = match_response.content.strip()
-            if match_response2 == "PASS":
+            if "PASS" in match_response2:
                 st.success(f"Result: {match_response2}\n\nYour Image: {out}")
-            elif match_response2 == "FAIL":
+            elif "FAIL" in match_response2:
                 st.warning(f"Result: {match_response2}\n\nYour Image: {out}")
             else:
                 st.error("Unexpected response from the judge.")
